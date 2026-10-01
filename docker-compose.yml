@@ -1,0 +1,20 @@
+# A infraestrutura Airflow é gerenciada pelo Compose do Ro-DOU.
+# Suba o Ro-DOU primeiro: ele cria a rede compartilhada.
+services:
+  gliner:
+    build:
+      context: .
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - gliner-models:/models
+    restart: always
+
+networks:
+  default:
+    name: ro-dou-network
+    external: true
+
+volumes:
+  gliner-models:

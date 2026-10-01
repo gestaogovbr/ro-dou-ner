@@ -1,0 +1,7 @@
+-r requirements.txt
+pytest==8.4.2
+httpx==0.28.1
+
+# Dependências da orquestração nos testes; não fazem parte da imagem de inferência.
+requests>=2.32.2,<3
+opensearch-py>=3.1.0,<4
