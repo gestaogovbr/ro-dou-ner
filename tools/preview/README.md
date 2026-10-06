@@ -1,23 +1,24 @@
-# Visualizador temporário
+# Visualizador temporário de entidades
 
-Página de inspeção para testes locais. Consome `GET /publications` da mesma API,
-mostra o texto canônico com as entidades, permite alternar tipos e navegar pelas
-páginas, e mantém todos os atributos de `_source` no painel JSON. O total representa
-documentos do índice, incluindo versões diferentes de uma mesma publicação.
+Ferramenta de inspeção local que consome `GET /publications` da mesma API. O [guia do visualizador](../../docs/wiki/Visualizador.md) centraliza habilitação, navegação e remoção; o [contrato da API](../../docs/wiki/API.md) define paginação e versões.
 
-O servidor disponibiliza `index.html` em `/preview` e os demais arquivos em
-`/preview-assets` quando a prévia está habilitada na configuração da API. A página
-não depende de um serviço frontend adicional nem de CDNs em tempo de execução.
+## Organização e contrato
 
-As posições seguem o contrato Python: índices de pontos de código Unicode,
-intervalo `[start, end)`, usando `Array.from` antes de recortar o texto. Cada
-segmento preserva todas as entidades sobrepostas; cores combinadas e o tooltip
-exibem os tipos. O conteúdo de documentos, nomes e JSON é sempre interpolado como
-texto pelo Vue, sem `v-html` ou inserção de HTML vindo do índice.
+`index.html` é servido em `/preview`; os demais arquivos ficam em `/preview-assets` quando a prévia está configurada. Os assets são locais e a ferramenta não exige frontend adicional ou CDN em runtime.
 
-Testes das marcações: `node --test tests/frontend/test_highlights.cjs`.
-O fluxo visual deve ser validado com a API em execução: carregar `/preview`,
-selecionar outra publicação, filtrar tipos, abrir JSON, trocar o tamanho e a página.
+Os offsets seguem índices de pontos de código Unicode Python em `[start, end)`. A marcação usa `Array.from` antes de recortar o texto e preserva todas as menções sobrepostas. Cores combinadas e tooltips exibem os tipos de cada segmento.
+
+Textos de publicações, nomes e JSON são interpolados pelo Vue, sem `v-html` ou inserção de HTML recebido do índice. Todos os atributos de `_source` permanecem disponíveis no painel JSON. O total conta versões indexadas, incluindo versões da mesma publicação.
+
+## Verificar alterações
+
+Execute a partir da raiz do projeto:
+
+```bash
+node --test tests/frontend/test_highlights.cjs
+```
+
+Com a API em execução, abra `/preview` e confira seleção de publicação, filtros de tipos, entidades sobrepostas, JSON, tamanho da página e navegação.
 
 ## Dependências locais
 
