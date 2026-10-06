@@ -1,0 +1,11 @@
+{
+  "mode": "hybrid",
+  "model_id": "urchade/gliner_multi-v2.1",
+  "model_revision": "443d26d654e0324125a96bebd8e796c14ff2efe6",
+  "tokenizer_id": "microsoft/mdeberta-v3-base",
+  "tokenizer_revision": "a0484667b22365f84929a935b5e50a51f71f159d",
+  "max_chars": 700,
+  "overlap": 100,
+  "threshold": 0.5,
+  "taxonomy": "../taxonomies/ner-v1.json"
+}
