@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ro-DOU NER · Visualizador de entidades</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/preview-assets/vendor/bootstrap-5.3.8.min.css">
+    <link rel="stylesheet" href="/preview-assets/preview.css">
+    <script defer src="/preview-assets/vendor/vue-3.5.13.global.prod.js"></script>
+    <script defer src="/preview-assets/highlights.js"></script>
+    <script defer src="/preview-assets/preview.js"></script>
+  </head>
+  <body>
+    <main id="app" v-cloak>
+      <header class="workspace-header">
+        <div>
+          <p class="eyebrow">VISUALIZAÇÃO TEMPORÁRIA</p>
+          <h1>Ro-DOU <span>NER</span></h1>
+          <p class="subtitle">Publicações indexadas e entidades extraídas</p>
+        </div>
+        <div class="header-tools">
+          <a href="/docs" target="_blank" rel="noopener" class="api-link">Documentação da API ↗</a>
+          <button class="btn btn-outline-secondary btn-sm" @click="loadPage(page)" :disabled="loading">Atualizar</button>
+        </div>
+      </header>
+
+      <div v-if="error" role="alert" class="alert alert-danger mx-4 mt-3 mb-0">
+        {{ error }} <button class="btn btn-sm btn-outline-danger ms-2" @click="loadPage(page)">Tentar novamente</button>
+      </div>
+      <div class="workspace">
+        <aside class="publication-sidebar" aria-label="Lista de publicações" :aria-busy="loading">
+          <div class="sidebar-heading">
+            <h2>Publicações</h2>
+            <span class="total-count" aria-live="polite">{{ number(total) }} documentos</span>
+          </div>
+          <div class="page-size-control">
+            <label for="page-size">Por página</label>
+            <select id="page-size" class="form-select form-select-sm" v-model.number="pageSize" @change="loadPage(1)" :disabled="loading">
+              <option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+            </select>
+          </div>
+          <div v-if="loading" class="loading-state" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Carregando publicações…</div>
+          <p v-else-if="!items.length" class="empty-list">Nenhuma publicação indexada nesta página.</p>
+          <div class="publication-list">
+            <button v-for="item in items" :key="item.id" class="publication-item" :class="{ selected: selectedId === item.id }" :aria-pressed="selectedId === item.id" @click="selectItem(item)">
+              <span class="publication-id">{{ item.document.publication_id || item.id }}</span>
+              <span class="publication-title">{{ publicationTitle(item.document) }}</span>
+              <span class="publication-meta">{{ publicationDate(item.document) }} · {{ item.document.mentions?.length || 0 }} entidades</span>
+            </button>
+          </div>
+          <nav class="page-navigation" aria-label="Paginação de publicações">
+            <div class="page-number" aria-live="polite">Página {{ page }} de {{ totalPages || 1 }}</div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm flex-fill" @click="loadPage(page - 1)" :disabled="loading || !hasPrevious">← Anterior</button>
+              <button class="btn btn-outline-secondary btn-sm flex-fill" @click="loadPage(page + 1)" :disabled="loading || !hasNext">Próxima →</button>
+            </div>
+          </nav>
+        </aside>
+
+        <section class="reading-pane" aria-label="Publicação selecionada" :aria-busy="loading">
+          <div v-if="selected" class="document-content">
+            <div class="document-heading">
+              <p class="eyebrow">{{ selected.document.publication_id }}</p>
+              <h2>{{ publicationTitle(selected.document) }}</h2>
+              <p class="document-context">{{ publicationDate(selected.document) }}<span v-if="organization(selected.document)"> · {{ organization(selected.document) }}</span></p>
+            </div>
+
+            <div class="entity-toolbar">
+              <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <h3>Entidades <span class="count-caption">{{ validMentions.length }}</span></h3>
+                <div class="d-flex gap-3">
+                  <button class="text-action" @click="visibleLabels = labels.map(entry => entry.label)">Mostrar todas</button>
+                  <button class="text-action" @click="visibleLabels = []">Ocultar todas</button>
+                </div>
+              </div>
+              <div class="entity-legend" aria-label="Filtros de entidades">
+                <label v-for="entry in labels" :key="entry.label" class="legend-entry" :class="{ muted: !visibleLabels.includes(entry.label) }" :style="{ '--entity-color': info(entry.label).color }">
+                  <input type="checkbox" v-model="visibleLabels" :value="entry.label">
+                  <span class="color-dot" aria-hidden="true"></span><span>{{ info(entry.label).title }}</span><span class="legend-count">{{ entry.count }}</span>
+                </label>
+              </div>
+              <p class="toolbar-help">Passe o cursor nas marcações para ver o tipo e a origem. Cores combinadas indicam entidades sobrepostas.</p>
+            </div>
+
+            <div v-if="highlightData.invalid" class="alert alert-warning py-2" role="alert">{{ highlightData.invalid }} marcação(ões) com limites inválidos não foram exibidas. O documento completo permanece disponível abaixo.</div>
+            <p v-if="!validMentions.length" class="no-entities">Nenhuma entidade identificada nesta publicação.</p>
+            <article class="publication-text" aria-label="Texto com entidades destacadas"><template v-for="segment in highlightData.segments" :key="segment.start"><mark v-if="segment.labels.length" class="entity-mark" :style="segment.style" :title="segment.title" :data-labels="segment.labels.join(',')" tabindex="0" @focus="focusedMentions = segment.mentions" @blur="focusedMentions = []">{{ segment.text }}</mark><span v-else>{{ segment.text }}</span></template></article>
+            <div v-if="focusedMentions.length" class="focused-entities" role="status"><div v-for="(mention, index) in focusedMentions" :key="index">{{ info(mention.label).title }}: {{ mention.surface }} · {{ mention.extractor }} · [{{ mention.start }}, {{ mention.end }})</div></div>
+
+            <details class="entity-details">
+              <summary>Lista de entidades <span>{{ validMentions.length }}</span></summary>
+              <div class="table-responsive">
+                <table class="table table-sm entity-table">
+                  <thead><tr><th scope="col">Tipo</th><th scope="col">Texto</th><th scope="col">Limites</th><th scope="col">Origem</th><th scope="col">Confiança</th></tr></thead>
+                  <tbody><tr v-for="(mention, index) in validMentions" :key="index"><td><span class="entity-type" :style="{ background: info(mention.label).color }">{{ info(mention.label).title }}</span></td><td>{{ mention.surface }}</td><td class="text-nowrap">[{{ mention.start }}, {{ mention.end }})</td><td>{{ mention.extractor }}</td><td>{{ score(mention.score) }}</td></tr></tbody>
+                </table>
+              </div>
+            </details>
+
+            <details class="document-details" @toggle="jsonOpen = $event.target.open">
+              <summary>Documento indexado completo <span>JSON</span></summary>
+              <pre v-if="jsonOpen" class="json-document">{{ documentJson }}</pre>
+            </details>
+            <footer class="document-footer"><span>Modelo: {{ selected.document.model?.model_id || selected.document.model?.provider || '—' }}</span><span>Pipeline: {{ shortVersion(selected.document.pipeline_version) }}</span></footer>
+          </div>
+          <div v-else class="empty-reading"><h2>Selecione uma publicação</h2><p>O texto e suas entidades aparecerão aqui.</p></div>
+        </section>
+      </div>
+    </main>
+    <noscript><p class="m-4">Ative o JavaScript para visualizar as publicações e as entidades.</p></noscript>
+  </body>
+</html>
