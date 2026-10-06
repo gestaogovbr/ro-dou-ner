@@ -1,14 +1,32 @@
-# Validação de implementação — 2026-10-06
+# Registro de validação — 2026-10-06
 
-- `uv run tools/test_shared_services.py --with-model`: **209 testes passaram, sem skips; cobertura 94,04%**. Python 3.12.13 no host. PostgreSQL e OpenSearch existentes do Ro-DOU foram reutilizados; apenas banco dedicado `ro_dou_ner_test` e índices temporários próprios foram usados pelos testes.
-- `uv run ruff check .` e `uv run ruff format --check .`: aprovados.
-- `uv build`: wheel e sdist gerados; wheel contém o recurso `schema.sql`.
-- `docker build -t ro-dou-ner:validation .`: imagem padrão aprovada.
-- Compose validado com configuração de PostgreSQL existente; contém apenas a aplicação e rede externa.
-- Template DAG importado no runtime Airflow 3 existente usando container transitório da mesma imagem: `ro_dou_ner_inlabs`, task `enrich_loaded_publications`, timetable por Asset. A task não foi implantada ou executada no scheduler ativo. O caminho de compatibilidade Airflow 2.10 não foi executado neste ambiente.
-- Smoke GLiNER real: checkpoint/tokenizer fixados no exemplo; documento longo subdividido integralmente, menções não vazias e todos os spans válidos. Isso verifica contrato técnico, não qualidade de reconhecimento no corpus real.
-- Fluxo com publicação real `inlabs:51596583`: leitura somente de leitura da origem, enriquecimento por regras com 10 menções, persistência em banco de teste, projeção em índice temporário, consulta pela API e segunda execução idempotente. Ao concluir, seus resultados de teste foram removidos. Origem e índice `dou` mantiveram **6.482 publicações/documentos**.
+Este registro preserva as evidências documentadas na entrega do MVP, antes da reorganização da documentação. Os resultados são **históricos** e não foram repetidos integralmente na revisão documental. Para comandos atuais, veja [Testes e validação](wiki/Testes-e-validacao.md).
 
-A suíte emite avisos de depreciação das bibliotecas Starlette/httpx e Torch/JIT; não houve falhas. A CI foi configurada, mas não houve execução remota de GitHub Actions nesta entrega.
+## Verificações registradas
 
-O benchmark disponível é sintético. Falta um corpus representativo real anotado para aprovar modelo, threshold e qualidade do NER.
+| Verificação | Resultado registrado | Escopo |
+| --- | --- | --- |
+| `uv run tools/test_shared_services.py --with-model` | 209 testes passaram, sem skips; cobertura 94,04% | Python 3.12.13; serviços existentes, banco `ro_dou_ner_test` e índices temporários |
+| `uv run ruff check .` | Aprovado | Lint |
+| `uv run ruff format --check .` | Aprovado | Formatação |
+| `uv build` | Wheel e sdist gerados | Wheel contendo `schema.sql` |
+| `docker build -t ro-dou-ner:validation .` | Aprovado | Imagem padrão |
+| Configuração Compose | Validada | Aplicação e rede externa com PostgreSQL existente |
+| Importação da DAG em Airflow 3 | DAG `ro_dou_ner_inlabs`, task `enrich_loaded_publications`, timetable por Asset | Container transitório da mesma imagem do runtime existente |
+| Smoke GLiNER real | Documento longo subdividido integralmente, menções não vazias e spans válidos | Checkpoint/tokenizer fixados no exemplo |
+
+## Fluxo com publicação real
+
+O registro original relata uso de `inlabs:51596583`: leitura da origem, regras com 10 menções, persistência em banco de teste, projeção em índice temporário, consulta pela API e segunda execução idempotente. Os resultados de teste foram removidos ao concluir. Origem e índice `dou` mantiveram 6.482 publicações/documentos naquele momento.
+
+Esses números representam aquela execução, não o estado atual dos serviços.
+
+## Limitações registradas
+
+- A task não foi implantada ou executada no scheduler ativo.
+- O caminho Airflow 2.10 não foi executado naquele ambiente.
+- A CI estava configurada, sem execução remota registrada na entrega.
+- Houve avisos de depreciação de Starlette/httpx e Torch/JIT, sem falhas reportadas.
+- O benchmark era sintético; corpus representativo real anotado ainda era necessário para aprovar modelo, threshold e qualidade.
+
+Smoke comprova contrato técnico, não qualidade. Confira evidências do commit e ambiente de interesse antes de decisões operacionais.
