@@ -1,0 +1,7 @@
+# Optional, temporary inspection UI. The API image does not include this page.
+services:
+  api:
+    environment:
+      RO_DOU_NER_PREVIEW_DIRECTORY: /app/preview
+    volumes:
+      - ./tools/preview:/app/preview:ro
