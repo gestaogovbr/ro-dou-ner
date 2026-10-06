@@ -1,0 +1,4 @@
+{
+  "version": "ner-v1",
+  "labels": ["PERSON", "ORGANIZATION", "LOCATION", "PROCESS_NUMBER", "IDENTIFIER", "DATE", "MONEY", "LEGAL_REFERENCE"]
+}

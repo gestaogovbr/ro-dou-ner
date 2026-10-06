@@ -1,0 +1,7 @@
+{
+  "mode": "rules",
+  "max_chars": 700,
+  "overlap": 100,
+  "threshold": 0.5,
+  "taxonomy": "../taxonomies/ner-v1.json"
+}

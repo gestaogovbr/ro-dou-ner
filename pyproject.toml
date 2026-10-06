@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ro-dou-ner"
+version = "0.1.0"
+description = "Versioned INLABS publication enrichment with ports and adapters"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = "AGPL-3.0-only"
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1", "psycopg[binary]>=3.2,<4", "opensearch-py>=2.8,<4"]
+
+[project.optional-dependencies]
+gliner = ["gliner==0.2.29"]
+
+[dependency-groups]
+dev = ["pytest>=8.3,<10", "pytest-cov>=6,<8", "httpx>=0.28,<1", "ruff>=0.11,<1", "hypothesis>=6.130,<7"]
+
+[project.scripts]
+ro-dou-ner = "ro_dou_ner.bootstrap.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ro_dou_ner"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --import-mode=importlib"
+markers = ["integration: requires isolated real backend services", "model: downloads and runs a pinned GLiNER checkpoint"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
