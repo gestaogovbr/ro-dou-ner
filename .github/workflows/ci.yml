@@ -1,0 +1,71 @@
+name: validation
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_model:
+        description: Download and validate pinned multilingual GLiNER
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ner_test
+          POSTGRES_PASSWORD: ner_test_only
+          POSTGRES_DB: ner_test
+        ports: ["15432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ner_test -d ner_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      opensearch:
+        image: opensearchproject/opensearch:2.19.4
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: "true"
+          DISABLE_INSTALL_DEMO_CONFIG: "true"
+          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+        ports: ["19200:9200"]
+        options: >-
+          --health-cmd "curl -fsS http://localhost:9200/_cluster/health"
+          --health-interval 10s --health-timeout 5s --health-retries 30
+    env:
+      RO_DOU_NER_TEST_POSTGRES_DSN: postgresql://ner_test:ner_test_only@localhost:15432/ner_test
+      RO_DOU_NER_TEST_OPENSEARCH_URL: http://localhost:19200
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.11.3"
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest --cov=ro_dou_ner --cov-fail-under=90
+      - run: uv build
+  model:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_model
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.11.3"
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --locked --extra gliner
+      - run: uv run --extra gliner pytest tests/model -q
+        env:
+          RO_DOU_NER_TEST_GLINER: "1"

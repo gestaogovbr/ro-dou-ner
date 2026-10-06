@@ -1,0 +1,30 @@
+name: ro-dou-ner
+services:
+  api:
+    restart: unless-stopped
+    build:
+      context: .
+      args:
+        WITH_GLINER: ${RO_DOU_NER_WITH_GLINER:-false}
+    environment:
+      RO_DOU_NER_DATABASE_DSN: ${RO_DOU_NER_DATABASE_DSN:?Configure the existing PostgreSQL DSN}
+      RO_DOU_NER_INLABS_DSN: ${RO_DOU_NER_INLABS_DSN:-}
+      RO_DOU_NER_OPENSEARCH_URL: ${RO_DOU_NER_OPENSEARCH_URL:-http://opensearch:9200}
+      RO_DOU_NER_MODE: ${RO_DOU_NER_MODE:-rules}
+      RO_DOU_NER_MODEL_ID: ${RO_DOU_NER_MODEL_ID:-}
+      RO_DOU_NER_MODEL_REVISION: ${RO_DOU_NER_MODEL_REVISION:-}
+      RO_DOU_NER_TOKENIZER_ID: ${RO_DOU_NER_TOKENIZER_ID:-}
+      RO_DOU_NER_TOKENIZER_REVISION: ${RO_DOU_NER_TOKENIZER_REVISION:-}
+      RO_DOU_NER_OPENSEARCH_INDEX: ${RO_DOU_NER_OPENSEARCH_INDEX:-ro-dou-ner-publications-v1}
+    ports: ["127.0.0.1:18000:8000"]
+    networks: [ro-dou]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 6s
+      start_period: 10s
+      retries: 3
+networks:
+  ro-dou:
+    external: true
+    name: ${RO_DOU_NER_SHARED_NETWORK:-ro-dou_default}
