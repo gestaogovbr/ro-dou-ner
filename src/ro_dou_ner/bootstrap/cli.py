@@ -150,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if report.failed or report.projection_failed else 0
     except Exception as error:
         # SDK exceptions may include credentials. Expose only their type at the CLI boundary.
-        print(json.dumps({"status": "failed", "error_type": type(error).__name__}), file=sys.stderr)
+        print(json.dumps({"status": "failed", "error_type": type(error).__name__, "error": str(error)}), file=sys.stderr)
         return 1
 
 
