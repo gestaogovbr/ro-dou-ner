@@ -76,6 +76,7 @@ class InlabsPublicationSource:
                 rows = connection.execute(sql, params).fetchall()
                 if not rows:
                     break
+                connection.commit()
                 for row in rows:
                     if not isinstance(row["texto"], str):
                         raise ValueError(
