@@ -122,8 +122,10 @@ class OverlappingChunker:
             if end == len(text):
                 break
             next_start = end - self.overlap
-            # Move the overlap's start back to a whole-word boundary if possible.
-            while next_start > start + 1 and not text[next_start - 1].isspace():
-                next_start -= 1
+            candidate_start = next_start
+            while candidate_start > start + 1 and not text[candidate_start - 1].isspace():
+                candidate_start -= 1
+            if text[candidate_start - 1].isspace():
+                next_start = candidate_start
             start = max(start + 1, next_start)
         return tuple(chunks)
